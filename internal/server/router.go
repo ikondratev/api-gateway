@@ -22,6 +22,6 @@ func NewRouter(logger logger.Logger) *Router {
 
 func (r *Router) RegisterRoutes() *mux.Router {
 	r.engine.HandleFunc("/ping", Pong).Methods(http.MethodGet)
-	
+
 	return r.engine
 }

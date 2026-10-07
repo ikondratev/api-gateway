@@ -21,25 +21,25 @@ type Server interface {
 }
 
 type App struct {
-	settings 	*settings.Settings
-	server 		Server
-	logger		logger.Logger
+	settings *settings.Settings
+	server   Server
+	logger   logger.Logger
 }
 
 func New(env string) (*App, error) {
 	settings, err := settings.New(env)
 	logger := logger.New(env)
 	if err != nil {
-		logger.Error("Settings error:", "load", err)
-		return nil, fmt.Errorf("Settings error: %w", err)
+		logger.Error("settings error:", "load", err)
+		return nil, fmt.Errorf("settings error: %w", err)
 	}
 
 	server := server.NewHTTPServer(settings, logger)
-	
+
 	return &App{
 		server:   server,
 		settings: settings,
-		logger: logger,
+		logger:   logger,
 	}, nil
 }
 
@@ -50,16 +50,18 @@ func (a *App) Run() error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	a.awaitInterraption(chErr, quit)
+	if err := a.awaitInterraption(chErr, quit); err != nil {
+		return err
+	}
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), 
-		time.Duration(a.settings.Server.WaitingShutdown) * time.Second)
+		context.Background(),
+		time.Duration(a.settings.Server.WaitingShutdown)*time.Second)
 	defer cancel()
-	
+
 	if err := a.server.Stop(ctx); err != nil {
-		a.logger.Error("erver sopped with error", "shutdown", err)
-		return fmt.Errorf("Server sopped with error %w", err)
+		a.logger.Error("server stopped with error", "shutdown", err)
+		return fmt.Errorf("server stopped with error: %w", err)
 	}
 
 	a.logger.Info("Server stoppend gracefullty")
@@ -68,10 +70,10 @@ func (a *App) Run() error {
 
 func (a *App) awaitInterraption(chErr <-chan error, quit <-chan os.Signal) error {
 	select {
-	case err := <- chErr:
+	case err := <-chErr:
 		if !errors.Is(err, http.ErrServerClosed) {
-			a.logger.Error("Interal error:", "shutdown", err)
-			return fmt.Errorf("Interal error: %w", err)
+			a.logger.Error("internal error:", "shutdown", err)
+			return fmt.Errorf("internal error: %w", err)
 		}
 		return nil
 	case sig := <-quit:

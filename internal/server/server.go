@@ -10,7 +10,7 @@ import (
 )
 
 type HttpServer struct {
-	engine 	 *http.Server
+	engine   *http.Server
 	settings *settings.Settings
 	logger   logger.Logger
 }
@@ -20,18 +20,18 @@ func NewHTTPServer(s *settings.Settings, logger logger.Logger) *HttpServer {
 	handler := router.RegisterRoutes()
 
 	server := &http.Server{
-		Addr: s.Server.Port,
-		Handler: handler,
-		ReadHeaderTimeout: 	time.Duration(s.Server.HeaderTimeout) 	* time.Second,
-		ReadTimeout: 		time.Duration(s.Server.ReadTimeout)		* time.Second,
-		WriteTimeout: 		time.Duration(s.Server.WriteTimeout) 	* time.Second,
-		IdleTimeout: 		time.Duration(s.Server.IdleTimeout) 	* time.Second,
+		Addr:              s.Server.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: time.Duration(s.Server.HeaderTimeout) * time.Second,
+		ReadTimeout:       time.Duration(s.Server.ReadTimeout) * time.Second,
+		WriteTimeout:      time.Duration(s.Server.WriteTimeout) * time.Second,
+		IdleTimeout:       time.Duration(s.Server.IdleTimeout) * time.Second,
 	}
 
 	return &HttpServer{
-		engine: 	server, 
-		settings: 	s,
-		logger: 	logger,
+		engine:   server,
+		settings: s,
+		logger:   logger,
 	}
 }
 
