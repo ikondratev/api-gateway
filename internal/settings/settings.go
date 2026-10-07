@@ -12,12 +12,19 @@ const (
 )
 
 type Settings struct {
-	Server Server `json:"server"`
+	Environment string `json:"env"`
+	Server 		Server `json:"server"`
 }
 
 type Server struct {
-	Host string `json:"host"`
-	Port int	`json:"port"`
+	Host 			string 	`json:"host"`
+	Port 			string	`json:"port"`
+	WaitingShutdown int 	`json:"waiting_shutdown"`
+	HeaderTimeout 	int		`json:"header_timeout"`
+	ReadTimeout		int		`json:"read_timeout"`
+	WriteTimeout	int		`json:"write_teimeout"`
+	IdleTimeout		int		`json:"idle_timeout"`
+
 }
 
 func New(env string) (*Settings, error){
