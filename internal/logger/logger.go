@@ -24,7 +24,7 @@ func New(env string) Logger {
 	}
 
 	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level:level,
+		Level: level,
 	})
 
 	return &slogLogger{engine: slog.New(h)}
@@ -32,9 +32,9 @@ func New(env string) Logger {
 
 func (l *slogLogger) Debug(msg string, args ...any) { l.engine.Debug(msg, args...) }
 
-func (l *slogLogger) Info(msg string, args ...any)  { l.engine.Info(msg, args...) }
+func (l *slogLogger) Info(msg string, args ...any) { l.engine.Info(msg, args...) }
 
-func (l *slogLogger) Warn(msg string, args ...any)  { l.engine.Warn(msg, args...) }
+func (l *slogLogger) Warn(msg string, args ...any) { l.engine.Warn(msg, args...) }
 
 func (l *slogLogger) Error(msg string, args ...any) { l.engine.Error(msg, args...) }
 
