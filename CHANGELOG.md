@@ -1,6 +1,17 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-10-09
+
+### Added
+
+- `POST /api/v1/event` for web and mobile clients.
+- gRPC contract in `api/event/v1/event.proto` 
+- The gRPC connection is closed after HTTP shutdown on `SIGINT` and `SIGTERM`.
+- Client errors are split from internal failures.
+### Notes
+
+- The gateway forwards the bearer token and does not verify it. Signature and `events:write` stay on event-service.
+- event-service does not serve this gRPC method yet. Until it listens on the configured address, `POST /api/v1/event` responds with HTTP 500.
 
 ## [0.1.0] - 2026-10-07
 
