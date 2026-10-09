@@ -12,8 +12,17 @@ const (
 )
 
 type Settings struct {
-	Environment string `json:"env"`
-	Server      Server `json:"server"`
+	Environment string   `json:"env"`
+	Server      Server   `json:"server"`
+	Upstream    Upstream `json:"upstream"`
+}
+
+type Upstream struct {
+	EventSerivce EventService `json:"event_service"`
+}
+
+type EventService struct {
+	Url string `json:"url"`
 }
 
 type Server struct {
@@ -39,5 +48,17 @@ func New(env string) (*Settings, error) {
 		return nil, fmt.Errorf("unable to unmarshal config: %w", err)
 	}
 
+	if err := validate(set); err != nil {
+		return nil, err
+	}
+
 	return set, nil
+}
+
+func validate(s *Settings) error {
+	if s.Upstream.EventSerivce.Url == "" {
+		return fmt.Errorf("upstream for event service is empty")
+	}
+
+	return nil
 }

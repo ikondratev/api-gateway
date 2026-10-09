@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ikondratev/api-gateway/internal/eventservice"
 	"github.com/ikondratev/api-gateway/internal/logger"
 	"github.com/ikondratev/api-gateway/internal/server"
 	"github.com/ikondratev/api-gateway/internal/settings"
@@ -24,6 +25,7 @@ type App struct {
 	settings *settings.Settings
 	server   Server
 	logger   logger.Logger
+	events   *eventservice.Client
 }
 
 func New(env string) (*App, error) {
@@ -34,12 +36,19 @@ func New(env string) (*App, error) {
 		return nil, fmt.Errorf("settings error: %w", err)
 	}
 
-	server := server.NewHTTPServer(settings, logger)
+	eventts, err := eventservice.New(settings)
+	if err != nil {
+		logger.Error("event service client:", "error", err)
+		return nil, fmt.Errorf("event service client: %w", err)
+	}
+
+	server := server.NewHTTPServer(settings, logger, eventts)
 
 	return &App{
 		server:   server,
 		settings: settings,
 		logger:   logger,
+		events:   eventts,
 	}, nil
 }
 
@@ -51,6 +60,9 @@ func (a *App) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	if err := a.awaitInterraption(chErr, quit); err != nil {
+		if closeEventErr := a.events.Close(); closeEventErr != nil {
+			a.logger.Error("event service close", "shutdown", closeEventErr)
+		}
 		return err
 	}
 
@@ -59,9 +71,16 @@ func (a *App) Run() error {
 		time.Duration(a.settings.Server.WaitingShutdown)*time.Second)
 	defer cancel()
 
-	if err := a.server.Stop(ctx); err != nil {
-		a.logger.Error("server stopped with error", "shutdown", err)
-		return fmt.Errorf("server stopped with error: %w", err)
+	stopServerErr := a.server.Stop(ctx)
+	stopEventsErr := a.events.Close()
+
+	if stopServerErr != nil {
+		a.logger.Error("server stopped with error", "shutdown", stopServerErr)
+		return fmt.Errorf("server stopped with error: %w", stopServerErr)
+	}
+	if stopEventsErr != nil {
+		a.logger.Error("event service close", "shutdown", stopEventsErr)
+		return fmt.Errorf("event service close: %w", stopEventsErr)
 	}
 
 	a.logger.Info("Server stoppend gracefullty")
@@ -80,5 +99,4 @@ func (a *App) awaitInterraption(chErr <-chan error, quit <-chan os.Signal) error
 		a.logger.Info("Server handled signal", "shutdown", sig)
 		return nil
 	}
-
 }
