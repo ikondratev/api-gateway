@@ -14,10 +14,10 @@ func main() {
 
 	app, err := application.New(env)
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 
 	if err := app.Run(); err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 }

@@ -15,6 +15,7 @@ type Router struct {
 
 func NewRouter(logger logger.Logger, events EventCreator) *Router {
 	router := mux.NewRouter()
+	router.Use(Trace())
 	router.Use(Logging(logger))
 
 	return &Router{
