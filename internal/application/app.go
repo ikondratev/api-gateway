@@ -68,7 +68,8 @@ func (a *App) Run() error {
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
-		time.Duration(a.settings.Server.WaitingShutdown)*time.Second)
+		time.Duration(a.settings.Server.WaitingShutdown)*time.Second,
+	)
 	defer cancel()
 
 	stopServerErr := a.server.Stop(ctx)

@@ -15,6 +15,7 @@ type EventCreator interface {
 		ctx context.Context,
 		authorization string,
 		idempotencyKey string,
+		traceId string,
 		req *eventpb.CreateEventRequest,
 	) (*eventpb.CreateEventResponse, error)
 }
@@ -25,27 +26,36 @@ type eventHandler struct {
 }
 
 func (h eventHandler) create(w http.ResponseWriter, r *http.Request) {
+	log := h.log.With("trace_id", TraceIDFrom(r.Context()))
+
 	authorization := r.Header.Get("Authorization")
 	if authorization == "" {
-		WriteError(w, h.log, apperr.Business(http.StatusUnauthorized, "unauthorized", "unauthorized"))
+		WriteError(w, log, apperr.Business(http.StatusUnauthorized, "unauthorized", "unauthorized"))
 		return
 	}
 
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 	if idempotencyKey == "" {
-		WriteError(w, h.log, apperr.Business(http.StatusBadRequest, "invalid_event", "idempotency key is required"))
+		WriteError(w, log, apperr.Business(http.StatusBadRequest, "invalid_event", "idempotency key is required"))
 		return
 	}
 
 	var req eventpb.CreateEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, h.log, apperr.Business(http.StatusBadRequest, "invalid_event", "invalid request body"))
+		WriteError(w, log, apperr.Business(http.StatusBadRequest, "invalid_event", "invalid request body"))
 		return
 	}
 
-	resp, err := h.events.CreateEvent(r.Context(), authorization, idempotencyKey, &req)
+	resp, err := h.events.CreateEvent(
+		r.Context(),
+		authorization,
+		idempotencyKey,
+		TraceIDFrom(r.Context()),
+		&req,
+	)
+
 	if err != nil {
-		WriteError(w, h.log, err)
+		WriteError(w, log, err)
 		return
 	}
 

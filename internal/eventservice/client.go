@@ -43,11 +43,13 @@ func (c *Client) CreateEvent(
 	ctx context.Context,
 	authorization string,
 	idempotencyKey string,
+	traceID string,
 	req *eventpb.CreateEventRequest,
 ) (*eventpb.CreateEventResponse, error) {
 	ctx = metadata.AppendToOutgoingContext(ctx,
 		"authorization", authorization,
 		"idempotency-key", idempotencyKey,
+		"x-trace-id", traceID,
 	)
 
 	resp, err := c.api.CreateEvent(ctx, req)

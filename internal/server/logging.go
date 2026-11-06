@@ -46,6 +46,7 @@ func Logging(logger logger.Logger) func(http.Handler) http.Handler {
 				"method", r.Method,
 				"path", r.URL.Path,
 				"remote_addr", r.RemoteAddr,
+				"trace_id", TraceIDFrom(r.Context()),
 			)
 
 			next.ServeHTTP(writer, r)
@@ -58,6 +59,7 @@ func Logging(logger logger.Logger) func(http.Handler) http.Handler {
 				"status", writer.status,
 				"response_size", writer.size,
 				"duration_ms", duration.Milliseconds(),
+				"trace_id", TraceIDFrom(r.Context()),
 			)
 
 			switch {
