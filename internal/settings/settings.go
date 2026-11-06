@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/go-playground/validator/v10"
 )
 
 const (
@@ -12,27 +14,31 @@ const (
 )
 
 type Settings struct {
-	Environment string   `json:"env"`
-	Server      Server   `json:"server"`
-	Upstream    Upstream `json:"upstream"`
+	Environment string   `json:"env" validate:"required"`
+	Server      Server   `json:"server" validate:"required"`
+	Upstream    Upstream `json:"upstream" validate:"required"`
 }
 
 type Upstream struct {
-	EventSerivce EventService `json:"event_service"`
+	EventSerivce EventService `json:"event_service" validate:"required"`
+	AuthService  AuthService  `json:"auth_service" validate:"required"`
 }
 
 type EventService struct {
-	Url string `json:"url"`
+	Url string `json:"url" validate:"required"`
+}
+
+type AuthService struct {
+	Url string `json:"url" validate:"required"`
 }
 
 type Server struct {
-	Host            string `json:"host"`
-	Port            string `json:"port"`
-	WaitingShutdown int    `json:"waiting_shutdown"`
-	HeaderTimeout   int    `json:"header_timeout"`
-	ReadTimeout     int    `json:"read_timeout"`
-	WriteTimeout    int    `json:"write_teimeout"`
-	IdleTimeout     int    `json:"idle_timeout"`
+	Port            string `json:"port" validate:"required"`
+	WaitingShutdown int    `json:"waiting_shutdown" validate:"required,min=1"`
+	HeaderTimeout   int    `json:"header_timeout" validate:"required,min=1"`
+	ReadTimeout     int    `json:"read_timeout" validate:"required,min=1"`
+	WriteTimeout    int    `json:"write_timeout" validate:"required,min=1"`
+	IdleTimeout     int    `json:"idle_timeout" validate:"required,min=1"`
 }
 
 func New(env string) (*Settings, error) {
@@ -56,8 +62,9 @@ func New(env string) (*Settings, error) {
 }
 
 func validate(s *Settings) error {
-	if s.Upstream.EventSerivce.Url == "" {
-		return fmt.Errorf("upstream for event service is empty")
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	if err := validate.Struct(s); err != nil {
+		return fmt.Errorf("settings: validation err: %w", err)
 	}
 
 	return nil

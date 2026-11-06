@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ikondratev/api-gateway/internal/authservice"
 	"github.com/ikondratev/api-gateway/internal/eventservice"
 	"github.com/ikondratev/api-gateway/internal/logger"
 	"github.com/ikondratev/api-gateway/internal/server"
@@ -26,6 +27,7 @@ type App struct {
 	server   Server
 	logger   logger.Logger
 	events   *eventservice.Client
+	auth     *authservice.Client
 }
 
 func New(env string) (*App, error) {
@@ -42,17 +44,29 @@ func New(env string) (*App, error) {
 		return nil, fmt.Errorf("event service client: %w", err)
 	}
 
-	server := server.NewHTTPServer(settings, logger, eventts)
+	auth, err := authservice.New(settings)
+	if err != nil {
+		_ = eventts.Close()
+		logger.Error("auth service client:", "error", err)
+		return nil, fmt.Errorf("auth service client: %w", err)
+	}
+
+	server := server.NewHTTPServer(settings, logger, eventts, auth)
 
 	return &App{
 		server:   server,
 		settings: settings,
 		logger:   logger,
 		events:   eventts,
+		auth:     auth,
 	}, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run() (err error) {
+	defer func() {
+		err = errors.Join(err, a.closeUpstreams())
+	}()
+
 	chErr := make(chan error, 1)
 	go a.server.Start(chErr)
 
@@ -60,9 +74,6 @@ func (a *App) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	if err := a.awaitInterraption(chErr, quit); err != nil {
-		if closeEventErr := a.events.Close(); closeEventErr != nil {
-			a.logger.Error("event service close", "shutdown", closeEventErr)
-		}
 		return err
 	}
 
@@ -72,16 +83,10 @@ func (a *App) Run() error {
 	)
 	defer cancel()
 
-	stopServerErr := a.server.Stop(ctx)
-	stopEventsErr := a.events.Close()
-
-	if stopServerErr != nil {
+	if stopServerErr := a.server.Stop(ctx); stopServerErr != nil {
 		a.logger.Error("server stopped with error", "shutdown", stopServerErr)
-		return fmt.Errorf("server stopped with error: %w", stopServerErr)
-	}
-	if stopEventsErr != nil {
-		a.logger.Error("event service close", "shutdown", stopEventsErr)
-		return fmt.Errorf("event service close: %w", stopEventsErr)
+		err = fmt.Errorf("server stopped with error: %w", stopServerErr)
+		return err
 	}
 
 	a.logger.Info("Server stoppend gracefullty")
@@ -100,4 +105,18 @@ func (a *App) awaitInterraption(chErr <-chan error, quit <-chan os.Signal) error
 		a.logger.Info("Server handled signal", "shutdown", sig)
 		return nil
 	}
+}
+
+func (a *App) closeUpstreams() error {
+	stopEventsErr := a.events.Close()
+	if stopEventsErr != nil {
+		a.logger.Error("event service close", "shutdown", stopEventsErr)
+	}
+
+	stopAuthErr := a.auth.Close()
+	if stopAuthErr != nil {
+		a.logger.Error("auth service close", "shutdown", stopAuthErr)
+	}
+
+	return errors.Join(stopEventsErr, stopAuthErr)
 }
