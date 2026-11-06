@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0] - 2026-11-06
+
+### Added
+- `POST /api/v1/auth/register`. The gateway calls auth-service `Register` and returns the token pair.
+- gRPC contract in `api/auth/v1/auth.proto`. The client reads `upstream.auth_service.url`.
+- `X-Trace-Id`. A missing or invalid header is replaced with a UUID. The id is logged as `trace_id` and sent to event-service.
+
+### Changed
+- Request logs apply to `/api` only. `GET /ping` stays a health check and is no longer logged.
+- Both gRPC clients close when the process exits, including when the HTTP server fails to start.
+- Settings are validated on load. `auth_service.url` is required. The write-timeout key is `write_timeout`.
+
+### Notes
+- Invalid email and invalid password respond with HTTP 400 (`invalid_email`, `invalid_password`). An existing email responds with HTTP 409 (`email_taken`).
+- `Login`, `Refresh`, and `Logout` are not routed yet.
+
+[0.3.0]: https://github.com/ikondratev/api-gateway/releases/tag/v0.3.0
+
 ## [0.2.0] - 2026-10-09
 
 ### Added
