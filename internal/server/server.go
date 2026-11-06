@@ -15,8 +15,8 @@ type HttpServer struct {
 	logger   logger.Logger
 }
 
-func NewHTTPServer(s *settings.Settings, logger logger.Logger, events EventCreator) *HttpServer {
-	router := NewRouter(logger, events)
+func NewHTTPServer(s *settings.Settings, logger logger.Logger, events EventCreator, auth Registrar) *HttpServer {
+	router := NewRouter(logger, events, auth)
 	handler := router.RegisterRoutes()
 
 	server := &http.Server{

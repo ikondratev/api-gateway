@@ -11,26 +11,32 @@ type Router struct {
 	engine *mux.Router
 	log    logger.Logger
 	events EventCreator
+	auth   Registrar
 }
 
-func NewRouter(logger logger.Logger, events EventCreator) *Router {
+func NewRouter(logger logger.Logger, events EventCreator, auth Registrar) *Router {
 	router := mux.NewRouter()
-	router.Use(Trace())
-	router.Use(Logging(logger))
 
 	return &Router{
 		engine: router,
 		log:    logger,
 		events: events,
+		auth:   auth,
 	}
 }
 
 func (r *Router) RegisterRoutes() *mux.Router {
 	eventHandler := eventHandler{log: r.log, events: r.events}
+	authHandler := authHandler{log: r.log, auth: r.auth}
 	r.engine.HandleFunc("/ping", Pong).Methods(http.MethodGet)
 
-	api := r.engine.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/event", eventHandler.create).Methods(http.MethodPost)
+	api := r.engine.PathPrefix("/api").Subrouter()
+	api.Use(Trace())
+	api.Use(Logging(r.log))
+
+	v1 := api.PathPrefix("/v1").Subrouter()
+	v1.HandleFunc("/event", eventHandler.create).Methods(http.MethodPost)
+	v1.HandleFunc("/auth/register", authHandler.register).Methods(http.MethodPost)
 
 	return r.engine
 }

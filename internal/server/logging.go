@@ -36,7 +36,6 @@ func Logging(logger logger.Logger) func(http.Handler) http.Handler {
 			r *http.Request,
 		) {
 			startedAt := time.Now()
-
 			writer := &responseWriter{
 				ResponseWriter: w,
 			}
@@ -50,7 +49,6 @@ func Logging(logger logger.Logger) func(http.Handler) http.Handler {
 			)
 
 			next.ServeHTTP(writer, r)
-
 			duration := time.Since(startedAt)
 
 			log := logger.With(
@@ -65,10 +63,8 @@ func Logging(logger logger.Logger) func(http.Handler) http.Handler {
 			switch {
 			case writer.status >= http.StatusInternalServerError:
 				log.Error("request completed")
-
 			case writer.status >= http.StatusBadRequest:
 				log.Warn("request completed")
-
 			default:
 				log.Info("request completed")
 			}
