@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2026-11-18
+
+### Added
+- `POST /api/v1/auth/Login`
+- `POST /api/v1/auth/Logout`
+
 ## [0.3.0] - 2026-11-06
 
 ### Added
