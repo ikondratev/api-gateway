@@ -47,6 +47,30 @@ func (c *Client) Register(ctx context.Context, r *authpb.RegisterRequest) (*auth
 	return resp, err
 }
 
+func (c *Client) Login(ctx context.Context, r *authpb.LoginRequest) (*authpb.TokenPair, error) {
+	resp, err := c.api.Login(ctx, r)
+	if err != nil {
+		return nil, toAppErr(err)
+	}
+	return resp, err
+}
+
+func (c *Client) Refresh(ctx context.Context, r *authpb.RefreshRequest) (*authpb.TokenPair, error) {
+	resp, err := c.api.Refresh(ctx, r)
+	if err != nil {
+		return nil, toAppErr(err)
+	}
+	return resp, err
+}
+
+func (c *Client) Logout(ctx context.Context, r *authpb.LogoutRequest) error {
+	_, err := c.api.Logout(ctx, r)
+	if err != nil {
+		return toAppErr(err)
+	}
+	return nil
+}
+
 func toAppErr(e error) error {
 	st, ok := status.FromError(e)
 	if !ok {
@@ -58,6 +82,8 @@ func toAppErr(e error) error {
 		return apperr.Business(http.StatusBadRequest, st.Message(), st.Message())
 	case codes.AlreadyExists:
 		return apperr.Business(http.StatusConflict, "email_taken", st.Message())
+	case codes.Unauthenticated:
+		return apperr.Business(http.StatusUnauthorized, "unauthenticated", st.Message())
 	default:
 		return apperr.Internal(e)
 	}

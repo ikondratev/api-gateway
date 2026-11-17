@@ -11,10 +11,10 @@ type Router struct {
 	engine *mux.Router
 	log    logger.Logger
 	events EventCreator
-	auth   Registrar
+	auth   Auther
 }
 
-func NewRouter(logger logger.Logger, events EventCreator, auth Registrar) *Router {
+func NewRouter(logger logger.Logger, events EventCreator, auth Auther) *Router {
 	router := mux.NewRouter()
 
 	return &Router{
@@ -36,7 +36,12 @@ func (r *Router) RegisterRoutes() *mux.Router {
 
 	v1 := api.PathPrefix("/v1").Subrouter()
 	v1.HandleFunc("/event", eventHandler.create).Methods(http.MethodPost)
-	v1.HandleFunc("/auth/register", authHandler.register).Methods(http.MethodPost)
+
+	v1_auth := v1.PathPrefix("/auth").Subrouter()
+	v1_auth.HandleFunc("/register", authHandler.register).Methods(http.MethodPost)
+	v1_auth.HandleFunc("/login", authHandler.login).Methods(http.MethodPost)
+	v1_auth.HandleFunc("/refresh", authHandler.refresh).Methods(http.MethodPost)
+	v1_auth.HandleFunc("/logout", authHandler.logout).Methods(http.MethodPost)
 
 	return r.engine
 }
